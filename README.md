@@ -1,0 +1,2 @@
+## Acknowledgement
+The dataset of yearly yields of rice is obtained thorough the API function of the Japanese Government Statistical General Contact Point (e-Stat), but the content of the prediction is not guaranteed by the government.
