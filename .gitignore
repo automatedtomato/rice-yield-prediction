@@ -208,3 +208,4 @@ data/raw/era5/*
 data/raw/*.csv
 
 .DS_STORE
+.vscode/

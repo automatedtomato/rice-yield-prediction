@@ -13,88 +13,108 @@ import xarray as xr
 
 logger = logging.getLogger(__name__)
 
-CITY_NAMES = ['asahi', 'ichihara', 'katori', 'narita', 'sanmu']
+CITY_NAMES = ["asahi", "ichihara", "katori", "narita", "sanmu"]
+
 
 class RawDataGenerator:
-    def __init__(self, data_dir: str='../data/raw', nc_dir: str='../data/raw/era5'):
+    def __init__(self, data_dir: str = "../data/raw", nc_dir: str = "../data/raw/era5"):
         self.data_dir = data_dir
         self.nc_dir = nc_dir
-    
-        
+
     def load_from_netcdf(self, region: str) -> pd.DataFrame:
-            """
-            Load netcdf data and transform to dataframe
+        """
+        Load netcdf data and transform to dataframe
 
-            Args:
-                region (str): name of the region
+        Args:
+            region (str): name of the region
 
-            Returns:
-                pd.DataFrame: dataframe of the netcdf data
-            """
-            
-            nc_path = os.path.join(self.nc_dir, f'era5_{region}.nc')
-            
-            if not os.path.exists(nc_path):
-                logger.warning(f'NetCDF data for {region} not found: {nc_path}')
-                return pd.DataFrame()
-            
-            try:
-                ds = xr.open_dataset(nc_path)
-                df = ds.to_dataframe()
-                
-                df.insert(0, 'city', f'{region.capitalize()}')
-                df.drop(columns=['number', 'expver'], inplace=True)
-                df.rename(columns={
-                            't2m': 'temp_2m',
-                            'stl1': 'soil_temp_l1',
-                            'swvl1': 'soil_water_vol_l1',
-                            'ssr': 'net_solar_radiation',
-                            'tp': 'total_rain'},
-                            inplace=True)
-                df = df.groupby(['valid_time', 'city'], as_index=False)[['temp_2m', 'soil_temp_l1', 'soil_water_vol_l1', 'net_solar_radiation', 'total_rain']].mean()
-                df = df.sort_values(by=['city', 'valid_time'], ascending=[True, False])
-                df.reset_index(drop=True, inplace=True)
-                
-                ds.close()
-                
-                logger.info(f'Transformed NetCDF data for {region} to dataframe successfully')
-                return df
-            
-            except Exception as e:
-                logger.error('Failed to transform NetCDF data for region %s: %s', region, str(e))
-                return pd.DataFrame()
-    
-    def load_from_stats (self, year: int) -> None:
+        Returns:
+            pd.DataFrame: dataframe of the netcdf data
+        """
+
+        nc_path = os.path.join(self.nc_dir, f"era5_{region}.nc")
+
+        if not os.path.exists(nc_path):
+            logger.warning(f"NetCDF data for {region} not found: {nc_path}")
+            return pd.DataFrame()
+
+        try:
+            ds = xr.open_dataset(nc_path)
+            df = ds.to_dataframe()
+
+            df.insert(0, "city", f"{region.capitalize()}")
+            df.drop(columns=["number", "expver"], inplace=True)
+            df.rename(
+                columns={
+                    "t2m": "temp_2m",
+                    "stl1": "soil_temp_l1",
+                    "swvl1": "soil_water_vol_l1",
+                    "ssr": "net_solar_radiation",
+                    "tp": "total_rain",
+                },
+                inplace=True,
+            )
+            df = df.groupby(["valid_time", "city"], as_index=False)[
+                [
+                    "temp_2m",
+                    "soil_temp_l1",
+                    "soil_water_vol_l1",
+                    "net_solar_radiation",
+                    "total_rain",
+                ]
+            ].mean()
+            df = df.sort_values(by=["city", "valid_time"], ascending=[True, False])
+            df.reset_index(drop=True, inplace=True)
+
+            ds.close()
+
+            logger.info(
+                f"Transformed NetCDF data for {region} to dataframe successfully"
+            )
+            return df
+
+        except Exception as e:
+            logger.error(
+                "Failed to transform NetCDF data for region %s: %s", region, str(e)
+            )
+            return pd.DataFrame()
+
+    def load_from_stats(self, year: int) -> None:
         """
         Load raw yield data and transform to prepared csv
 
         Args:
             year (int): year of the data
         """
-        df = pd.read_csv(os.path.join(self.data_dir, f'chiba_yields_{year}.csv'))
-        
+        df = pd.read_csv(os.path.join(self.data_dir, f"chiba_yields_{year}.csv"))
+
         cols_idx = [0, 7]
         cols_to_keep = [df.columns[i] for i in cols_idx]
         df = df[cols_to_keep]
-        
-        df.rename(columns={df.columns[0]: 'City', df.columns[1]: 'Yields'}, inplace=True)
 
-        df.insert(0, 'Year', year)
-        df.insert(1, 'CityId', df.City.apply(self.city_to_id))
+        df.rename(
+            columns={df.columns[0]: "City", df.columns[1]: "Yields"}, inplace=True
+        )
+
+        df.insert(0, "Year", year)
+        df.insert(1, "CityId", df.City.apply(self.city_to_id))
         df.City = df.City.apply(self.id_to_city)
-        
-        for city in CITY_NAMES:
-            existing_city_df = pd.read_csv(os.path.join(self.data_dir, f'{city}_yields_df.csv'))
-            city_df = df.loc[df.City] == city
-            
-            new_df = pd.concat([existing_city_df, city_df])
-            
-            df = df.sort_values(by=['CityId', 'Year'], ascending=[True, False])
-            df.reset_index(drop=True, inplace=True)
-            
-            new_df.to_csv(os.path.join(self.data_dir, f'{city}_yields_df.csv'), index=False)
 
-     
+        for city in CITY_NAMES:
+            existing_city_df = pd.read_csv(
+                os.path.join(self.data_dir, f"{city}_yields_df.csv")
+            )
+            city_df = df.loc[df.City] == city
+
+            new_df = pd.concat([existing_city_df, city_df])
+
+            df = df.sort_values(by=["CityId", "Year"], ascending=[True, False])
+            df.reset_index(drop=True, inplace=True)
+
+            new_df.to_csv(
+                os.path.join(self.data_dir, f"{city}_yields_df.csv"), index=False
+            )
+
     def city_to_id(self, city_name: list[str]):
         """
         Helper function to assign city id
@@ -105,13 +125,13 @@ class RawDataGenerator:
         Returns:
             int or None: city id
         """
-        city_id_map = {'成田市': 1, '旭市': 2, '市原市': 3, '香取市': 4, '山武市': 5}
+        city_id_map = {"成田市": 1, "旭市": 2, "市原市": 3, "香取市": 4, "山武市": 5}
 
         for city, city_id in city_id_map.items():
             if city in city_name:
                 return city_id
         return None
-    
+
     def id_to_city(self, city_id: int):
         """
         Helper function to assign city name
@@ -122,7 +142,7 @@ class RawDataGenerator:
         Returns:
             str or None: city name
         """
-        city_id_map = {1: '成田市', 2: '旭市', 3: '市原市', 4: '香取市', 5: '山武市'}
+        city_id_map = {1: "成田市", 2: "旭市", 3: "市原市", 4: "香取市", 5: "山武市"}
 
         for id in city_id_map:
             if city_id == id:
