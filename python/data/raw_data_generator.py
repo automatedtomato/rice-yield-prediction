@@ -11,15 +11,15 @@ import os
 import pandas as pd
 import xarray as xr
 
-logger = logging.getLogger(__name__)
+from utils.constants import RAW_DATA_DIR, REGIONS
 
-CITY_NAMES = ["asahi", "ichihara", "katori", "narita", "sanmu"]
+logger = logging.getLogger(__name__)
 
 
 class RawDataGenerator:
-    def __init__(self, data_dir: str = "../data/raw", nc_dir: str = "../data/raw/era5"):
-        self.data_dir = data_dir
-        self.nc_dir = nc_dir
+    def __init__(self, raw_dir: str = RAW_DATA_DIR, era5_data_dir: str = RAW_DATA_DIR + "/era5"):
+        self.raw_dir = raw_dir
+        self.era5_data_dir = era5_data_dir
 
     def load_from_netcdf(self, region: str) -> pd.DataFrame:
         """
@@ -32,7 +32,7 @@ class RawDataGenerator:
             pd.DataFrame: dataframe of the netcdf data
         """
 
-        nc_path = os.path.join(self.nc_dir, f"era5_{region}.nc")
+        nc_path = os.path.join(self.era5_data_dir, f"era5_{region}.nc")
 
         if not os.path.exists(nc_path):
             logger.warning(f"NetCDF data for {region} not found: {nc_path}")
@@ -86,7 +86,7 @@ class RawDataGenerator:
         Args:
             year (int): year of the data
         """
-        df = pd.read_csv(os.path.join(self.data_dir, f"chiba_yields_{year}.csv"))
+        df = pd.read_csv(os.path.join(self.raw_dir, f"chiba_yields_{year}.csv"))
 
         cols_idx = [0, 7]
         cols_to_keep = [df.columns[i] for i in cols_idx]
@@ -100,9 +100,9 @@ class RawDataGenerator:
         df.insert(1, "CityId", df.City.apply(self.city_to_id))
         df.City = df.City.apply(self.id_to_city)
 
-        for city in CITY_NAMES:
+        for city in REGIONS:
             existing_city_df = pd.read_csv(
-                os.path.join(self.data_dir, f"{city}_yields_df.csv")
+                os.path.join(self.raw_dir, f"{city}_yields_df.csv")
             )
             city_df = df.loc[df.City] == city
 
@@ -112,7 +112,7 @@ class RawDataGenerator:
             df.reset_index(drop=True, inplace=True)
 
             new_df.to_csv(
-                os.path.join(self.data_dir, f"{city}_yields_df.csv"), index=False
+                os.path.join(self.raw_dir, f"{city}_yields_df.csv"), index=False
             )
 
     def city_to_id(self, city_name: list[str]):

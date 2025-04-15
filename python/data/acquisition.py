@@ -1,26 +1,16 @@
 from tracemalloc import start
 import cdsapi
 import os
-from dotenv import load_dotenv
 import json
 import requests
-
-COORDINATES = {
-    "narita": [35.54, 140.14, 35.43, 140.28],
-    "asahi": [35.78, 140.58, 35.69, 140.75],
-    "ichihara": [35.55, 140.03, 35.24, 140.25],
-    "katori": [35.95, 140.43, 35.76, 140.64],
-    "sanmu": [35.68, 140.34, 35.56, 140.51],
-}
-
-STATS_CODE = "00500215"
+import logging
+from utils.constants import COORDINATES
 
 ESTAT_API_VERSION = "3.0"
-
+STATS_CODE = "00500215"
 SURVEY_NAME = "作目統計調査"
 
-load_dotenv()
-
+logger = logging.getLogger(__name__)
 
 class DataAcquisition:
     def __init__(self, cds_url: str, cds_key: str, estat_key: str):
@@ -65,7 +55,10 @@ class DataAcquisition:
         target = f"../data/raw/era5/era5_{region}.nc"
 
         client = cdsapi.Client(url=self.url, key=self.key)
-        client.retrieve(dataset, request, target)
+        try:
+            client.retrieve(dataset, request, target)
+        except Exception as e:
+            logger.error(f'Failed to get data from CDS: {e}', exc_info=True)
 
     def find_stats_data_id(self, year_str: str):
         """

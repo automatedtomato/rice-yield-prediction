@@ -1,12 +1,11 @@
-from curses import raw
 from data.acquisition import DataAcquisition
 from data.preprocessing import DataPreprocessor
 from data.raw_data_generator import RawDataGenerator
+from utils.constants import REGIONS, RAW_DATA_DIR, PROCESSED_DATA_DIR, MUNICIPALITY_CODES
 
 import os
 import logging
 from typing import List, Optional, Dict
-from pathlib import Path
 import pandas as pd
 
 logging.basicConfig(
@@ -14,24 +13,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-
-REGIONS = ["asahi", "ichihara", "katori", "narita", "sanmu"]
-RAW_DATA_DIR = os.path.join(PROJECT_ROOT, "data/raw")
-PROCESSED_DATA_DIR = os.path.join(PROJECT_ROOT, "data/processed")
-
 CDS_API_URL = os.environ.get("CDS_API_URL", "https://cds.climate.copernicus.eu/api")
 CDS_API_KEY = os.environ.get("CDS_API_KEY", "")
 ESTAT_API_KEY = os.environ.get("ESTAT_API_KEY", "")
-
-MUNICIPALITY_CODES = {
-    "asahi": 1013,
-    "ichihara": 1017,
-    "katori": 1034,
-    "narita": 1010,
-    "sanmu": 1035,
-}
-
 
 class Pipeline:
     def __init__(
@@ -41,6 +25,7 @@ class Pipeline:
         end_year: int = 2023,
         raw_dir: str = RAW_DATA_DIR,
         processed_dir: str = PROCESSED_DATA_DIR,
+        era5_data_dir: str = RAW_DATA_DIR + "/era5",
     ):
         """
         Initialize method
@@ -51,26 +36,25 @@ class Pipeline:
             end_year (int): end year
             raw_dir (str): path to the directory containing the raw data
             processed_dir (str): path to the directory containing the processed data
+            era5_data_dir (str): path to the directory containing the era5 data
         """
-
-        os.makedirs(raw_dir, exist_ok=True)
-        os.makedirs(processed_dir, exist_ok=True)
 
         self.regions = regions
         self.start_year = start_year
         self.end_year = end_year
         self.raw_dir = raw_dir
         self.processed_dir = processed_dir
+        self.era5_data_dir = era5_data_dir
 
-        os.makedirs(os.path.join(self.raw_dir, "era5"), exist_ok=True)
-        os.makedirs(os.path.join(self.raw_dir, "estat"), exist_ok=True)
+        os.makedirs(era5_data_dir, exist_ok=True)
+        os.makedirs(raw_dir, exist_ok=True)
         os.makedirs(processed_dir, exist_ok=True)
 
         self.acq = DataAcquisition(
             cds_url=CDS_API_URL, cds_key=CDS_API_KEY, estat_key=ESTAT_API_KEY
         )
-        self.prep = DataPreprocessor(raw_dir, processed_dir)
-        self.gen = RawDataGenerator(raw_dir, processed_dir)
+        self.prep = DataPreprocessor(raw_dir=raw_dir, processed_dir=processed_dir)
+        self.gen = RawDataGenerator(raw_dir=raw_dir, era5_data_dir=era5_data_dir)
 
     def run(
         self,
@@ -83,7 +67,7 @@ class Pipeline:
 
         Args:
             skip_climate_acquisition (bool): if True, skip climate data acquisition
-            skip_crop_acquisition (bool): if True, skip crop data acquisition
+            skip_yield_acquisition (bool): if True, skip crop data acquisition
             skip_raw_generation (bool): if True, skip raw data generation
         Returns:
             Dict: dictionary of results
@@ -222,8 +206,8 @@ class Pipeline:
         # 4. Data preprocessing
         logger.info("Data preprocessing started")
         try:
-            self.prep.load_data()
-            self.prep.clean_data()
+            self.prep.load_data(use_netcdf=False)
+            self.prep.clean_data(imputation_method='multi_region_trend')
             joined_data = self.prep.join_data()
 
             output_path = os.path.join(self.processed_dir, "combined_data.csv")
@@ -247,6 +231,8 @@ class Pipeline:
             }
 
         return result
+    
+    
 
 
 if __name__ == "__main__":
@@ -278,7 +264,7 @@ if __name__ == "__main__":
 
     result = pipeline.run(
         skip_climate_acquisition=args.skip_climate,
-        skip_yield_acquisition=args.skip_yield_acquisition,
+        skip_yield_acquisition=args.skip_yield,
         skip_raw_generation=args.skip_raw_generation,
     )
 
