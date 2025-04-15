@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package rice_yield;
+option go_package = "github.com/automatedtomato/rice-yield-prediction/golang/internal/proto/rice_yield";
+
+message PredictionRequest {
+    float temp_2m = 1;
+    float soil_temp_l1 = 2;
+    float soil_water_vol_l1 = 3;
+    float net_solar_radiation = 4;
+    float total_rain = 5;
+    string region = 6;
+    string model_version = 7;
+}
+
+message PredictionResponse {
+    float predicted_yield = 1;
+    map<string, float> feature_contribution = 2;
+    float confidence = 3;
+    string model_info = 4;
+}
+
+message ModelInfoRequest {
+    string model_version = 1;
+}
+
+message ModelInfoResponse {
+    string model_version = 1;
+    string training_date = 2;
+    float r_squared = 3;
+    float rmse = 4;
+    repeated string features = 5;
+}
+
+service YieldPredictionService {
+    // Single prediction
+    rpc Predict(PredictionRequest) returns (PredictionResponse) {}
+    rpc GetModelInfo(ModelInfoRequest) returns (ModelInfoResponse)  {}
+}

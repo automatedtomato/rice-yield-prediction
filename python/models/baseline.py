@@ -8,7 +8,6 @@ avg. air temp, avg. soil temp and total precipitation of the growing season
 
 import logging
 import os
-from pyexpat import model
 from typing import Tuple
 import joblib
 from sklearn import metrics
