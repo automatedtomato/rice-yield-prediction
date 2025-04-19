@@ -278,6 +278,32 @@ class BaselineModel:
         logger.info(f'Model saved to {model_path}')
         logger.info(f'Features saved to {features_path}')
         
+        try:
+            from serialization.model_serializer import ModelSerializer
+            
+            serializer = ModelSerializer('../models')
+            metrics = self.evaluate_model() if hasattr(self, 'evaluate_model') else {}
+            features = self.X_train.columns.tolist() if self.X_train is not None else []
+            
+            if metrics is None:
+                logger.error('Metrics is not found. Skipping model saving.')
+                return
+            
+            version = serializer.save_model(
+                model=self.model, 
+                features=features,
+                metrics=metrics
+            )    
+            
+            logger.info(f'Model saved with version: {version}')
+            
+        except ImportError:
+            logger.error('ModelSerializer is not found. Skipping model saving.')
+            
+        except Exception as e:
+            logger.error(f'Model serializing failed: {str(e)}')
+                   
+        
     def baseline_model_pipeline(self) -> dict | None:
         """
         Pipeline for training and evaluating model

@@ -3,6 +3,15 @@ from pathlib import Path
 
 # Statistics indicators
 REGIONS = ["asahi", "ichihara", "katori", "narita", "sanmu"]
+REGIONS_KANJI = ['旭市', '市原市', '香取市', '成田市', '山武市']
+# REGIONS_DICT = {
+#      1: '旭市',
+#      2: '市原市',
+#      3: '香取市',
+#      4: '成田市',
+#      5: '山武市'}
+
+
 
 MUNICIPALITY_CODES = {
     "asahi": 1013,
