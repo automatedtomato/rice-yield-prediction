@@ -204,8 +204,8 @@ go.work.sum
 .env
 
 # Data processing
-data/raw/era5/*
-data/raw/*.csv
+# data/raw/era5/*
+# data/raw/*.csv
 
 .DS_STORE
 .vscode/

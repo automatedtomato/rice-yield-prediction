@@ -9,3 +9,9 @@ scikit-learn==1.6.1
 seaborn==0.13.2
 xarray==2025.3.1
 xgboost==3.0.0
+scikeras=-0.13.0
+tensorflow==2.19.0
+nvidia-cuda-cupti-cu12==12.5.82
+nvidia-cuda-nvcc-cu12==12.5.82
+nvidia-cuda-nvrtc-cu12==12.5.82
+nvidia-cuda-runtime-cu12==12.5.82
